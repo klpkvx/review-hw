@@ -23,7 +23,7 @@ void Window::draw_residual (QPainter *painter)
           pen.setColor (QColor (r, g, b));
           painter->setPen (pen);
           painter->setBrush (brush);
-          QPointF points[3] = {QPointF (l2g (a + i * hx, c + j * hy)), 
+          QPointF points[3] = {QPointF (l2g (a + i * hx, c + j * hy)),
                               QPointF (l2g (a + i * hx, c + (j + 1) * hy)),
                               QPointF (l2g (a + (i + 1) * hx, c + (j + 1) * hy))};
           painter->drawPolygon (points, 3);
@@ -72,7 +72,7 @@ int Window::parse_command_line (int argc, char * argv[])
         && (sscanf (argv[10], "%lf", &eps) == 1) && (sscanf (argv[11], "%d", &maxit) == 1) && (maxit >= 0)
         && (sscanf (argv[12], "%d", &p) == 1) && (p > 0)))
     {
-      return -1;
+      return -1; // Стоит делать печать ошибки внутри функции, а не извне
     }
   return 0;
 }
@@ -101,7 +101,7 @@ void Window::init_memory ()
 
 void Window::free_memory ()
 {
-  if (x_coef) delete [] x_coef;
+  if (x_coef) delete [] x_coef; // Нужно использовать unique_ptr
   if (RES) delete RES;
   if (glob) delete glob;
   if (timer) delete timer;
@@ -116,8 +116,8 @@ QPointF Window::l2g (double x_loc, double y_loc)
 
 void Window::start_timer ()
 {
-	connect (timer, SIGNAL (timeout ()), this, SLOT (vrema ()));
-  timer->start (100);
+	connect (timer, SIGNAL (timeout ()), this, SLOT (vrema ())); // vrema переименовать на check_timers ()
+  timer->start (100); // 100 вынести в отдельную константу с суффиксом единиц измерения
 }
 
 void Window::copy_to_gui ()
@@ -189,20 +189,20 @@ void Window::draw_approximation (QPainter *painter)
     {
       for (j = 0; j < my; j ++)
         {
-          f_l1 = P_f (x_coef, a + i * hx + hx / 3, c + j * hy + 2 * hy / 3, nx, ny, a, c, hnx, hny);
-          f_l1 += (i == mx / 2 && j == my / 2) ? (perturbation * 0.1 * F_MAX_MODULO) : 0;
+          f_l1 = P_f (x_coef, a + i * hx + hx / 3, c + j * hy + 2 * hy / 3, nx, ny, a, c, hnx, hny); // выделить a + ... c + ... в отдельные переменные. Не очень понятно что такое hnx, hny.
+          f_l1 += (i == mx / 2 && j == my / 2) ? (perturbation * 0.1 * F_MAX_MODULO) : 0; // стоит разбить на переменные, куча условий, код не читается
           f_to_rgb (f_l1, r, g, b);
           brush.setColor (QColor (r, g, b));
           pen.setColor (QColor (r, g, b));
           painter->setPen (pen);
           painter->setBrush (brush);
-          QPointF points[3] = {QPointF (l2g (a + i * hx, c + j * hy)), 
+          QPointF points[3] = {QPointF (l2g (a + i * hx, c + j * hy)),
                               QPointF (l2g (a + i * hx, c + (j + 1) * hy)),
                               QPointF (l2g (a + (i + 1) * hx, c + (j + 1) * hy))};
           painter->drawPolygon (points, 3);
 
           f_l2 = P_f (x_coef, a + i * hx + 2 * hx / 3, c + j * hy + hy / 3, nx, ny, a, c, hnx, hny);
-          f_l2 += (i == mx / 2 && j == my / 2) ? (perturbation * 0.1 * F_MAX_MODULO) : 0;
+          f_l2 += (i == mx / 2 && j == my / 2) ? (perturbation * 0.1 * F_MAX_MODULO) : 0; // код дублируется. Это невозможно поддерживать будет.
           f_to_rgb (f_l2, r, g, b);
           brush.setColor (QColor (r, g, b));
           pen.setColor (QColor (r, g, b));
@@ -213,9 +213,9 @@ void Window::draw_approximation (QPainter *painter)
         }
     }
 }
-int do_no (Window *ptr)
+int do_no (Window *ptr) // Window * без ptr
 {
-  (void) ptr;
+  (void) ptr; // удалить void(ptr)
   return 0;
 }
 
@@ -226,7 +226,7 @@ int do_del (Window *ptr)
 
 void Window::closeEvent (QCloseEvent *)
 {
-  funex (this);
+  funex (this); // непонятно что такое funex: function exception?
 }
 
 int Window::exit_func ()
@@ -237,7 +237,7 @@ int Window::exit_func ()
 	pthread_mutex_unlock (&glob->m);
   if (calc_st == calc_status::CALC_IN_PROCESS)
     {
-      QMessageBox::warning (0, "Attention", 
+      QMessageBox::warning (0, "Attention",
                             "Please wait for the end of calculation");
       return 1;
     }
@@ -248,27 +248,27 @@ int Window::exit_func ()
   return 0;
 }
 
-void Window::vrema ()
+void Window::vrema () // переименовать на check_timers ()
 {
-  int request, calc_st, alg_st;
+  int request, calc_st, alg_st; // стоит удалить и на месте инициализировать
   pthread_mutex_lock (&glob->m);
-  request = glob->request;
-  calc_st = glob->calc_st;
-  alg_st = glob->alg_st;
+  request = glob->request; // int request =
+  calc_st = glob->calc_st; // int calc_st =
+  alg_st = glob->alg_st; // int alg_st =
   pthread_mutex_unlock (&glob->m);
-  if (request == requests::EXIT)
+  if (request == requests::EXIT) // сделать switch (request)
     {
       window ()->close ();
     }
   else if (request == requests::WAIT)
     {
-      if (calc_st == calc_status::CALC_FINISHED)
+      if (calc_st == calc_status::CALC_FINISHED) // вынести внутреннюю часть if в отдельную функцию. Если в классе появится еще timer, его обработка превратит эту функцию в нечитаемый код
         {
           prst = 1;
           pthread_mutex_lock (&glob->m);
           if (alg_st)
             {
-              printf ("ERROR: algorithm\n");
+              printf ("ERROR: algorithm\n"); // Ошибка для пользователя совсем непонятная будет
               glob->request = requests::EXIT;
               window ()->close ();
             }
@@ -278,23 +278,23 @@ void Window::vrema ()
               glob->calc_st = calc_status::SLEEP;
             }
           pthread_mutex_unlock (&glob->m);
-          status_bar = "";
+          status_bar = ""; // status_bar.clear (), status_bar заменить на std::string
           rdy = 1;
 
           funex = do_del;
           update ();
         }
       else
-        prst = 1;
+        prst = 1; // непонятное название переменной и смысл значения
     }
 }
 
 void Window::update_all ()
 {
-	pthread_mutex_lock (&glob->m);
+	pthread_mutex_lock (&glob->m); // Под windows этот код не соберется
   if (glob->init_memory ())
     {
-      printf ("ERROR: MEMORY\n");
+      printf ("ERROR: MEMORY\n"); // Непонятная ошибка для пользователя. Будет утечка памяти, нужно использовать unique_ptr для расчетных данных. Qt шные объекты с parent можно использовать голыми указателями
       window ()->close ();
     }
   glob->request = requests::CALCULATE;
@@ -310,7 +310,7 @@ void Window::change_function ()
 	pthread_mutex_unlock (&glob->m);
   if (calc_st == calc_status::CALC_IN_PROCESS)
     {
-      QMessageBox::warning (0, "Attention", 
+      QMessageBox::warning (0, "Attention",
                             "Please wait for the end of calculation");
       return;
     }
@@ -335,10 +335,10 @@ void Window::change_graphs ()
         graph_text = "f";
         break;
       case 1:
-        graph_text = "approx";
+        graph_text = "approx"; // approximation
         break;
       case 2:
-        graph_text = "res";
+        graph_text = "res"; // result. сокращения для пользователя будут непонятными
         break;
     }
   update ();
@@ -390,20 +390,20 @@ void Window::decrease_scale ()
 
 void Window::paintEvent (QPaintEvent * /* event */)
 {
-  char text_buf[128] = {}; 
+  char text_buf[128] = {};
   char text_buf1[128] = {};
   QPainter painter (this);
   QPen pen_black (Qt::black, 0, Qt::SolidLine);
   switch (graph_num)
-    {    
+    {
       case 0:
         {
           set_minmax_f ();
           if (fabs (F_MIN - F_MAX) < MY_EP)
-            {    
-              F_MIN -= MY_EP;  
+            {
+              F_MIN -= MY_EP;
               F_MAX += MY_EP;
-            } 
+            }
           draw_func (&painter);
           sprintf (text_buf1, "Function");
           painter.setPen ("black");
@@ -413,10 +413,10 @@ void Window::paintEvent (QPaintEvent * /* event */)
         {
           set_minmax_approximation ();
           if (fabs (F_MIN - F_MAX) < MY_EP)
-            {    
-              F_MIN -= MY_EP;  
+            {
+              F_MIN -= MY_EP;
               F_MAX += MY_EP;
-            } 
+            }
           draw_approximation (&painter);
           sprintf (text_buf1, "Approximation");
           painter.setPen ("black");
@@ -426,10 +426,10 @@ void Window::paintEvent (QPaintEvent * /* event */)
         {
           set_minmax_residual ();
           if (fabs (F_MIN - F_MAX) < EPS)
-            {    
-              F_MIN -= EPS;  
+            {
+              F_MIN -= EPS;
               F_MAX += EPS;
-            } 
+            }
           draw_residual (&painter);
           sprintf (text_buf1, "Residual");
           painter.setPen ("black");
@@ -468,7 +468,7 @@ void Window::increase_n ()
 	pthread_mutex_unlock (&glob->m);
   if (calc_st == calc_status::CALC_IN_PROCESS)
     {
-      QMessageBox::warning (0, "Attention", 
+      QMessageBox::warning (0, "Attention",
                             "Please wait for the end of calculation");
       return;
     }
@@ -493,13 +493,13 @@ void Window::decrease_n ()
 	pthread_mutex_unlock (&glob->m);
   if (calc_st == calc_status::CALC_IN_PROCESS)
     {
-      QMessageBox::warning (0, "Attention", 
+      QMessageBox::warning (0, "Attention",
                             "Please wait for the end of calculation");
       return;
     }
   status_bar = "Calculating...";
   rdy = 0;
-  
+
   funex = do_no;
   update ();
 	pthread_mutex_lock (&glob->m);
@@ -549,7 +549,7 @@ void Window::increase_p ()
   perturbation++;
   update ();
 }
-  
+
 void Window::decrease_p ()
 {
   perturbation--;
@@ -576,7 +576,7 @@ void Window::set_minmax_f ()
     {
       for (j = 0; j < my; j ++)
         {
-          f0 = f_ (a + i * hx + hx / 3., c + j * hy + 2. * hy / 3.);
+          f0 = f_ (a + i * hx + hx / 3., c + j * hy + 2. * hy / 3.); // Стоит попробовать объединить код с IF, пока он дублируется.
           if (f0 < F_MIN)
             F_MIN = f0;
           if (f0 > F_MAX)
@@ -604,7 +604,7 @@ void Window::set_minmax_approximation ()
     {
       for (j = 0; j < my; j ++)
         {
-          f0 = P_f (x_coef, a + i * hx + hx / 3., c + j * hy + 2. * hy / 3., nx, ny, a, c, hnx, hny);
+          f0 = P_f (x_coef, a + i * hx + hx / 3., c + j * hy + 2. * hy / 3., nx, ny, a, c, hnx, hny); // стоит выделить в отдельные переменные параметры функции и убрать дублирование кода
           if (f0 < F_MIN)
             F_MIN = f0;
           if (f0 > F_MAX)
@@ -629,7 +629,7 @@ void Window::f_to_rgb (double f_value, double &c1, double &c2, double &c3)
 {
   double pt = 0.;
   c1 = c2 = c3 = 128;
-  if (F_MAX - F_MIN < 1e-13)
+  if (F_MAX - F_MIN < 1e-13) // константы нужно выделить в namespace
   {
     c1 = c2 = c3 = 128;
     return;
@@ -643,7 +643,7 @@ void Window::f_to_rgb (double f_value, double &c1, double &c2, double &c3)
       c2 = 0;
       c3 = (int)(pt * 128 * 7) % 256;
       return;
-      
+
     }
   if (pt < 2. / 7.)
     {
@@ -652,7 +652,7 @@ void Window::f_to_rgb (double f_value, double &c1, double &c2, double &c3)
       c3 = (int)(pt * 255 * 7 / 2) % 256;
       c2 = 0;
       return;
-      
+
     }
   if (pt < 3. / 7.)
     {
@@ -675,7 +675,7 @@ void Window::f_to_rgb (double f_value, double &c1, double &c2, double &c3)
       c3 = 0;
       return;
 
-      
+
     }
   if (pt < 6. / 7.)
     {
@@ -699,7 +699,7 @@ void Window::set_minmax_residual ()
   F_MIN = F_MAX = f_ (a, c) - P_f (x_coef, a, c, nx, ny, a, c, hnx, hny);
   for (i = 0; i < mx; i ++)
     {
-      for (j = 0; j < my; j ++)
+      for (j = 0; j < my; j ++) // стоит отдельно вычислить значения для улучшения читаемости кода
         {
           f0 = f_ (a + i * hx + hx / 3, c + j * hy + 2 * hy / 3) - P_f (x_coef, a + i * hx + hx / 3, c + j * hy + 2 * hy / 3, nx, ny, a, c, hnx, hny);
           if (f0 < F_MIN)
@@ -738,7 +738,7 @@ void Window::draw_func (QPainter *painter)
           pen.setColor (QColor (r, g, b));
           painter->setPen (pen);
           painter->setBrush (brush);
-          QPointF points[3] = {QPointF (l2g (a + i * hx, c + j * hy)), 
+          QPointF points[3] = {QPointF (l2g (a + i * hx, c + j * hy)),
                               QPointF (l2g (a + i * hx, c + (j + 1) * hy)),
                               QPointF (l2g (a + (i + 1) * hx, c + (j + 1) * hy))};
           painter->drawPolygon (points, 3);
@@ -757,7 +757,7 @@ void Window::draw_func (QPainter *painter)
 }
 
 // #include "thread.h"
-// #include "thread.h"
+// #include "thread.h" нужно удалить неиспользуемые headers
 
 static double *results = nullptr;
 
@@ -921,7 +921,7 @@ int fill_IA (int nx, int ny, double hx, double hy, int * I, double * A, int p, i
       len += s;
     }
   reduce_sum (p, &err, 1);
-  if (err < 0)
+  if (err < 0) // стоит в stderr печатать что происходит
     return -1;
   reduce_sum (p, &len, 1);
   if (I[n] != n + 1 + len)
@@ -978,7 +978,7 @@ void fill_BBB (int n, int nx, int ny, double hx, double hy, double *b, double x0
     {
       b[l] = F_ij(nx, ny, hx, hy, x0, y0, f, l);
     }
-  
+
   reduce_sum (p);
 }
 
@@ -1014,7 +1014,7 @@ int algorithm_ (double * A, int * I, double * BBB, double * x, double * r, doubl
   for (step = 0; step < MAX_STEPS; step ++)
     {
       int res = min_error_msr_matrix (A, I, BBB, x, r, u, v, eps, max_iter, N, p, k);
-      if (res >= 0) 
+      if (res >= 0)
         {
           its += res;
           break;
@@ -1026,7 +1026,7 @@ int algorithm_ (double * A, int * I, double * BBB, double * x, double * r, doubl
   return its;
 }
 
-void residual_1 (int n, int nx, int ny, double hx, double hy, double a, double c, int p, int k, double * x, double (* f_) (double, double))
+void residual_1 (int n, int nx, int ny, double hx, double hy, double a, double c, int p, int k, double * x, double (* f_) (double, double)) //  код дублируется в последующих функциях. стоит его попытаться унифицировать.
 {
   int l = 0, i = 0, j = 0;
   int l1 = n * k / p;
@@ -1049,7 +1049,7 @@ void residual_1 (int n, int nx, int ny, double hx, double hy, double a, double c
           if (fabs (f_l2 - pf_l2) > res)
             res = fabs (f_l2 - pf_l2);
         }
-    }  
+    }
   results[k] = res;
   reduce_sum (p);
 }
@@ -1075,7 +1075,7 @@ void residual_2 (int n, int nx, int ny, double hx, double hy, double a, double c
           pf_l2 = P_f (x, a + i * hx + 2 * hx / 3, c + j * hy + hy / 3, nx, ny, a, c, hx, hy);
           res += fabs (f_l2 - pf_l2);
         }
-    }  
+    }
   results[k] = res * hx * hy * 0.5;
   reduce_sum (p);
 }
@@ -1098,7 +1098,7 @@ void residual_3 (int n, int nx, int ny, double hx, double hy, double a, double c
           if (fabs (f_l - pf_l) > res)
             res = fabs (f_l - pf_l);
         }
-    }  
+    }
   results[k] = res;
   reduce_sum (p);
 }
@@ -1120,7 +1120,7 @@ void residual_4 (int n, int nx, int ny, double hx, double hy, double a, double c
           pf_l = x[l];
           res += fabs (f_l - pf_l);
         }
-    }  
+    }
   results[k] = res * hx * hy;
   reduce_sum (p);
 }
@@ -1144,13 +1144,13 @@ void *thread_loop (void * ptr)
   Args * args = (Args *) ptr;
   global_args * glob = args->glob;
   reduce_sum (args->p);
-  while (1) 
+  while (1)
     {
       pthread_mutex_lock (&glob->m);
       for (; glob->request == requests::WAIT; )
         pthread_cond_wait (&glob->cond, &glob->m);
       pthread_mutex_unlock (&glob->m);
-      switch (glob->request) 
+      switch (glob->request)
         {
           case requests::CALCULATE:
             thread_func (args);
@@ -1173,10 +1173,10 @@ void *thread_func (void * ptr)
   glob->calc_st = calc_status::CALC_IN_PROCESS;
   pthread_mutex_unlock (&glob->m);
   double * A = glob -> A;
-  double * BBB = glob -> B;
+  double * BBB = glob -> B; // стоит дать осмысленное переменной BBB
   int * I = glob -> I;
   double * x = glob -> x;
-  double * r = glob -> r;
+  double * r = glob -> r; // инициализацию парамтероа стоит вынести в отдельную функцию. Рассчетное ядро должно находиться в другом файле.
   double * u = glob -> u;
   double * v = glob -> v;
   double (*f_) (double, double) = glob -> f_ptr;
@@ -1189,7 +1189,7 @@ void *thread_func (void * ptr)
   int ny = glob -> ny;
   int N = glob -> N;
   int LEN = glob -> len_msr;
-  double a = glob -> a;
+  double a = glob -> a; // пробелы между стрелками стоит убрать
   double b = glob -> b;
   double c = glob -> c;
   double d = glob -> d;
@@ -1216,7 +1216,7 @@ void *thread_func (void * ptr)
   memset (u + l1, 0, (l2 - l1) * sizeof (double));
   memset (v + l1, 0, (l2 - l1) * sizeof (double));
   memset (r + l1, 0, (l2 - l1) * sizeof (double));
-  
+
   reduce_sum (p);
   if (k == 0)
     {
@@ -1266,7 +1266,7 @@ void *thread_func (void * ptr)
 
   r1 = r2 = r3 = r4 = 0;
 
-  residual_1 (N, nx, ny, hx, hy, a, c, p, k, x, f_);
+  residual_1 (N, nx, ny, hx, hy, a, c, p, k, x, f_); // вычисление невязок вынести в отдельную функцию
   for (int i = 0; i < p; i ++)
     if (results[i] > r1)
       r1 = results[i];
@@ -1307,3 +1307,5 @@ void *thread_func (void * ptr)
   pthread_mutex_unlock (&glob->m);
   return 0;
 }
+
+// посмотрел. код работает, но пушить такое нельзя
